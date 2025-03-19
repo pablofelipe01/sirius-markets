@@ -11,19 +11,21 @@ import PredictionDetail from '@/components/PredictionDetail';
 import MarketSummary from '@/components/MarketSummary';
 import StockSearch from '@/components/StockSearch';
 import StockAnalysis from '@/components/StockAnalysis';
+import StockTicker from '@/components/StockTicker';
 import { marketStackService, newsService, newsAPIService } from '@/lib/api-services';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { webhookService } from '@/lib/webhook-service';
 import { MarketDataItem, NewsItem, PredictionResults, PredictionResult } from '@/types/market';
 import { mockMarketData, mockStocksData, mockNewsData } from '@/mocks/testData';
 
-// Define the extended prediction result interface for stock analysis
+// Interface for price targets
 interface PriceTargets {
   short_term: string;
   medium_term: string;
   long_term: string;
 }
 
+// Extended prediction result interface that includes price targets
 interface StockPredictionResult extends PredictionResult {
   price_targets?: PriceTargets;
   stock_summary?: string;
@@ -371,118 +373,127 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen p-8 bg-black text-white">
-      <div className="flex items-center justify-between mb-8">
-    <div className="flex items-center">
-      <img 
-        src="/logo.png" 
-        alt="Sirius Markets Logo" 
-        className="h-10 mr-4" 
-      />
-      <h1 className="text-3xl font-bold"> Prediction Dashboard</h1>
-    </div>
-  </div>
-      
-      {isLoading ? (
-        <div className="text-center">Loading market data...</div>
-      ) : (
-        <>
-          {apiError && (
-            <div className="mb-4 p-4 bg-red-900 border border-red-700 rounded-lg">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-red-300 mb-1"><strong>API Error:</strong> {apiError}</p>
-                  <p className="text-red-300 text-sm">Using mock data for display purposes.</p>
+    <>
+      {/* Ticker en la parte superior */}
+      {!isLoading && (
+        <div className="fixed top-0 left-0 right-0 z-10">
+          <StockTicker stocks={[...marketData, ...stocksData]} />
+        </div>
+      )}
+    
+      <main className="min-h-screen p-8 bg-black text-white pt-16"> {/* Añade pt-16 para dejar espacio al ticker */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center">
+            <img 
+              src="/logo.png" 
+              alt="Sirius Markets Logo" 
+              className="h-10 mr-4" 
+            />
+            <h1 className="text-3xl font-bold">Market Prediction Dashboard</h1>
+          </div>
+        </div>
+        
+        {isLoading ? (
+          <div className="text-center">Loading market data...</div>
+        ) : (
+          <>
+            {apiError && (
+              <div className="mb-4 p-4 bg-red-900 border border-red-700 rounded-lg">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-red-300 mb-1"><strong>API Error:</strong> {apiError}</p>
+                    <p className="text-red-300 text-sm">Using mock data for display purposes.</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowApiTester(true)}
+                    className="px-3 py-1 bg-red-800 text-white text-sm rounded hover:bg-red-700"
+                  >
+                    Test API
+                  </button>
                 </div>
+              </div>
+            )}
+            
+            {error && (
+              <div className="mb-4 p-4 bg-orange-900 border border-orange-700 rounded-lg">
+                <p className="text-orange-300">{error}</p>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              <MarketData title="Market Indices" data={marketData} />
+              <MarketData title="Popular Stocks" data={stocksData} />
+            </div>
+            
+            <NewsSection news={newsData} />
+            
+            <StockSearch onSearch={handleStockSearch} isSearching={isSearchingStock} />
+
+            {stockSymbol && stockAnalysis && (
+              <div id="stock-analysis" className="mb-8 scroll-mt-8">
+                <StockAnalysis symbol={stockSymbol} prediction={stockAnalysis} />
+              </div>
+            )}
+            
+            <div id="market-analysis" className="mt-8 border border-gray-800 rounded-lg bg-gray-900 scroll-mt-8">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-semibold">Análisis de Mercado</h2>
+                  <WebhookButton 
+                    isLoading={isAnalyzing} 
+                    onClick={sendToAIAnalysis} 
+                    label="Ejecutar Análisis de IA"
+                  />
+                </div>
+                
+                {predictionResults ? (
+                  <>
+                    {analysisSummary && (
+                      <MarketSummary
+                        summaryText={analysisSummary}
+                        timestamp={analysisTimestamp}
+                      />
+                    )}
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {Object.entries(predictionResults).map(([index, prediction]) => (
+                        <PredictionDetail 
+                          key={index}
+                          symbol={index}
+                          prediction={prediction}
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center text-gray-500 py-10">
+                    <p>No hay predicciones disponibles.</p>
+                    <p className="text-sm mt-2">Haz clic en `Ejecutar Análisis de IA` para generar predicciones.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {apiSource === 'mock' && (
+              <div className="mt-4 p-4 bg-yellow-900 border border-yellow-700 rounded-lg flex justify-between items-center">
+                <p className="text-yellow-300">
+                  <strong>Note:</strong> Currently using mock data. Configure your API keys in the .env.local file to fetch live data.
+                </p>
                 <button 
                   onClick={() => setShowApiTester(true)}
-                  className="px-3 py-1 bg-red-800 text-white text-sm rounded hover:bg-red-700"
+                  className="px-3 py-1 bg-yellow-800 text-white text-sm rounded hover:bg-yellow-700"
                 >
                   Test API
                 </button>
               </div>
-            </div>
-          )}
-          
-          {error && (
-            <div className="mb-4 p-4 bg-orange-900 border border-orange-700 rounded-lg">
-              <p className="text-orange-300">{error}</p>
-            </div>
-          )}
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            <MarketData title="Market Indices" data={marketData} />
-            <MarketData title="Popular Stocks" data={stocksData} />
-          </div>
-          
-          <NewsSection news={newsData} />
-          
-          <StockSearch onSearch={handleStockSearch} isSearching={isSearchingStock} />
-
-          {stockSymbol && stockAnalysis && (
-            <div id="stock-analysis" className="mb-8 scroll-mt-8">
-              <StockAnalysis symbol={stockSymbol} prediction={stockAnalysis} />
-            </div>
-          )}
-          
-          <div id="market-analysis" className="mt-8 border border-gray-800 rounded-lg bg-gray-900 scroll-mt-8">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-semibold">Análisis de Mercado</h2>
-                <WebhookButton 
-                  isLoading={isAnalyzing} 
-                  onClick={sendToAIAnalysis} 
-                  label="Ejecutar Análisis de IA"
-                />
-              </div>
-              
-              {predictionResults ? (
-                <>
-                  {analysisSummary && (
-                    <MarketSummary
-                      summaryText={analysisSummary}
-                      timestamp={analysisTimestamp}
-                    />
-                  )}
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {Object.entries(predictionResults).map(([index, prediction]) => (
-                      <PredictionDetail 
-                        key={index}
-                        symbol={index}
-                        prediction={prediction}
-                      />
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="text-center text-gray-500 py-10">
-                  <p>No hay predicciones disponibles.</p>
-                  <p className="text-sm mt-2">Haz clic en `Ejecutar Análisis de IA` para generar predicciones.</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {apiSource === 'mock' && (
-            <div className="mt-4 p-4 bg-yellow-900 border border-yellow-700 rounded-lg flex justify-between items-center">
-              <p className="text-yellow-300">
-                <strong>Note:</strong> Currently using mock data. Configure your API keys in the .env.local file to fetch live data.
-              </p>
-              <button 
-                onClick={() => setShowApiTester(true)}
-                className="px-3 py-1 bg-yellow-800 text-white text-sm rounded hover:bg-yellow-700"
-              >
-                Test API
-              </button>
-            </div>
-          )}
-          
-          {showApiTester && (
-            <ApiTester onClose={() => setShowApiTester(false)} />
-          )}
-        </>
-      )}
-    </main>
+            )}
+            
+            {showApiTester && (
+              <ApiTester onClose={() => setShowApiTester(false)} />
+            )}
+          </>
+        )}
+      </main>
+    </>
   );
 }
