@@ -442,7 +442,7 @@ export default function Home() {
                   <WebhookButton 
                     isLoading={isAnalyzing} 
                     onClick={sendToAIAnalysis} 
-                    label="Ejecutar Análisis de IA"
+                    label="Ejecutar IA"
                   />
                 </div>
                 
