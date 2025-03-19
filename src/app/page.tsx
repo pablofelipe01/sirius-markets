@@ -372,7 +372,16 @@ export default function Home() {
 
   return (
     <main className="min-h-screen p-8 bg-black text-white">
-      <h1 className="text-3xl font-bold mb-8">Market Prediction Dashboard</h1>
+      <div className="flex items-center justify-between mb-8">
+    <div className="flex items-center">
+      <img 
+        src="/logo.png" 
+        alt="Sirius Markets Logo" 
+        className="h-10 mr-4" 
+      />
+      <h1 className="text-3xl font-bold"> Prediction Dashboard</h1>
+    </div>
+  </div>
       
       {isLoading ? (
         <div className="text-center">Loading market data...</div>
